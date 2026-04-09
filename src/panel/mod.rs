@@ -8,6 +8,7 @@ pub struct PanelConfig {
     pub height: u16,
     pub madctl: u8,
     pub pixel_format: u8,
+    pub invert: bool,
     pub spi_path: String,
     pub spi_hz: u32,
     pub dc_pin: u8,

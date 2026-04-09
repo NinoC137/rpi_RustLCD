@@ -52,6 +52,22 @@ impl FrameBuffer {
         out
     }
 
+    pub fn as_bytes_666_from_565(&self) -> Vec<u8> {
+        let mut out = Vec::with_capacity(self.pixels.len() * 3);
+        for px in &self.pixels {
+            let v = px.0;
+            let r5 = ((v >> 11) & 0x1F) as u8;
+            let g6 = ((v >> 5) & 0x3F) as u8;
+            let b5 = (v & 0x1F) as u8;
+            let r6 = (r5 << 1) | (r5 >> 4);
+            let b6 = (b5 << 1) | (b5 >> 4);
+            out.push(r6 << 2);
+            out.push(g6 << 2);
+            out.push(b6 << 2);
+        }
+        out
+    }
+
     pub fn copy_region_to_page(&self, region: DirtyRegion, page: &mut PageBuffer) {
         let rows = region.height.min(page.height).min(self.height.saturating_sub(region.y));
         let cols = region.width.min(page.width).min(self.width.saturating_sub(region.x));

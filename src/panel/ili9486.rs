@@ -59,11 +59,11 @@ impl Panel for Ili9486 {
         thread::sleep(Duration::from_millis(120));
         self.cmd(0x3A, &[self.cfg.pixel_format])?;
         self.cmd(0x36, &[self.cfg.madctl])?;
-        self.cmd(0xC2, &[0x44])?;
+        self.cmd(0xC2, &[0x55])?;
         self.cmd(0xC5, &[0x00, 0x00, 0x00, 0x00])?;
         self.cmd(0xE0, &[0x0F,0x1F,0x1C,0x0C,0x0F,0x08,0x48,0x98,0x37,0x0A,0x13,0x04,0x11,0x0D,0x00])?;
         self.cmd(0xE1, &[0x0F,0x32,0x2E,0x0B,0x0D,0x05,0x47,0x75,0x37,0x06,0x10,0x03,0x24,0x20,0x00])?;
-        self.cmd(0x20, &[])?;
+        if self.cfg.invert { self.cmd(0x21, &[])?; } else { self.cmd(0x20, &[])?; }
         self.cmd(0x29, &[])?;
         thread::sleep(Duration::from_millis(50));
         Ok(())
@@ -72,7 +72,7 @@ impl Panel for Ili9486 {
     fn flush(&mut self, fb: &FrameBuffer) -> Result<(), Box<dyn std::error::Error>> {
         self.set_window(0, 0, self.cfg.width - 1, self.cfg.height - 1)?;
         self.dc.set_high()?;
-        let bytes = fb.as_bytes_be();
+        let bytes = if self.cfg.pixel_format == 0x66 { fb.as_bytes_666_from_565() } else { fb.as_bytes_be() };
         for chunk in bytes.chunks(4096) {
             self.spi.write(chunk)?;
         }

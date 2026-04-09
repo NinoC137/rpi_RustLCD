@@ -40,8 +40,9 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut rst: u8 = 25;
     let mut width: u16 = 480;
     let mut height: u16 = 320;
-    let mut madctl: u8 = 0x48;
-    let mut pixel_format: u8 = 0x55;
+    let mut madctl: u8 = 0x88;
+    let mut pixel_format: u8 = 0x66;
+    let mut invert = true;
     let mut pattern = Pattern::Red;
     let mut use_page_flush = false;
     let mut page_height: u16 = 40;
@@ -58,6 +59,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             "--height" => { i += 1; height = args[i].parse()?; }
             "--madctl" => { i += 1; madctl = u8::from_str_radix(args[i].trim_start_matches("0x"), 16)?; }
             "--pixel-format" => { i += 1; pixel_format = u8::from_str_radix(args[i].trim_start_matches("0x"), 16)?; }
+            "--invert" => { invert = true; }
             "--pattern" => { i += 1; pattern = Pattern::parse(&args[i]); }
             "--page-flush" => { use_page_flush = true; }
             "--page-height" => { i += 1; page_height = args[i].parse()?; }
@@ -79,7 +81,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         Pattern::Status => patterns::status_page_demo(&mut fb),
     }
 
-    let cfg = PanelConfig { width, height, madctl, pixel_format, spi_path: spi, spi_hz, dc_pin: dc, rst_pin: rst };
+    let cfg = PanelConfig { width, height, madctl, pixel_format, invert, spi_path: spi, spi_hz, dc_pin: dc, rst_pin: rst };
     let mut panel = Ili9486::new(cfg)?;
     panel.init()?;
 
