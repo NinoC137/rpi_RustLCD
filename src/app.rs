@@ -1,0 +1,103 @@
+use std::env;
+
+use crate::framebuffer::{DirtyRegion, FrameBuffer, PageBuffer, Rgb565};
+use crate::panel::{Panel, PanelConfig, ili9486::Ili9486};
+use crate::render::patterns;
+
+#[derive(Debug, Clone, Copy)]
+enum Pattern {
+    Red,
+    Green,
+    Blue,
+    White,
+    Black,
+    Bars,
+    Quad,
+    Xo,
+    Status,
+}
+
+impl Pattern {
+    fn parse(s: &str) -> Self {
+        match s {
+            "green" => Self::Green,
+            "blue" => Self::Blue,
+            "white" => Self::White,
+            "black" => Self::Black,
+            "bars" => Self::Bars,
+            "quad" => Self::Quad,
+            "xo" => Self::Xo,
+            "status" => Self::Status,
+            _ => Self::Red,
+        }
+    }
+}
+
+pub fn run() -> Result<(), Box<dyn std::error::Error>> {
+    let mut spi = "/dev/spidev0.0".to_string();
+    let mut spi_hz: u32 = 24_000_000;
+    let mut dc: u8 = 24;
+    let mut rst: u8 = 25;
+    let mut width: u16 = 480;
+    let mut height: u16 = 320;
+    let mut madctl: u8 = 0x48;
+    let mut pixel_format: u8 = 0x55;
+    let mut pattern = Pattern::Red;
+    let mut use_page_flush = false;
+    let mut page_height: u16 = 40;
+
+    let args: Vec<String> = env::args().collect();
+    let mut i = 1;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--spi" => { i += 1; spi = args[i].clone(); }
+            "--spi-hz" => { i += 1; spi_hz = args[i].parse()?; }
+            "--dc" => { i += 1; dc = args[i].parse()?; }
+            "--rst" => { i += 1; rst = args[i].parse()?; }
+            "--width" => { i += 1; width = args[i].parse()?; }
+            "--height" => { i += 1; height = args[i].parse()?; }
+            "--madctl" => { i += 1; madctl = u8::from_str_radix(args[i].trim_start_matches("0x"), 16)?; }
+            "--pixel-format" => { i += 1; pixel_format = u8::from_str_radix(args[i].trim_start_matches("0x"), 16)?; }
+            "--pattern" => { i += 1; pattern = Pattern::parse(&args[i]); }
+            "--page-flush" => { use_page_flush = true; }
+            "--page-height" => { i += 1; page_height = args[i].parse()?; }
+            _ => {}
+        }
+        i += 1;
+    }
+
+    let mut fb = FrameBuffer::new(width, height);
+    match pattern {
+        Pattern::Red => fb.clear(Rgb565::RED),
+        Pattern::Green => fb.clear(Rgb565::GREEN),
+        Pattern::Blue => fb.clear(Rgb565::BLUE),
+        Pattern::White => fb.clear(Rgb565::WHITE),
+        Pattern::Black => fb.clear(Rgb565::BLACK),
+        Pattern::Bars => patterns::color_bars(&mut fb),
+        Pattern::Quad => patterns::quad(&mut fb),
+        Pattern::Xo => patterns::xo_center_demo(&mut fb),
+        Pattern::Status => patterns::status_page_demo(&mut fb),
+    }
+
+    let cfg = PanelConfig { width, height, madctl, pixel_format, spi_path: spi, spi_hz, dc_pin: dc, rst_pin: rst };
+    let mut panel = Ili9486::new(cfg)?;
+    panel.init()?;
+
+    if use_page_flush {
+        let mut page = PageBuffer::new(width, page_height);
+        let mut y = 0u16;
+        while y < height {
+            let h = page_height.min(height - y);
+            let region = DirtyRegion { x: 0, y, width, height: h };
+            fb.copy_region_to_page(region, &mut page);
+            panel.flush_region(region, &page)?;
+            y = y.saturating_add(page_height);
+        }
+        println!("ok: region page flush complete");
+    } else {
+        panel.flush(&fb)?;
+        println!("ok: full frame flush complete");
+    }
+
+    Ok(())
+}
