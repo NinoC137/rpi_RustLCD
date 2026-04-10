@@ -99,11 +99,19 @@ bool DmaSpiBackend::flush_dma_candidate(const FlushRequest& req, const std::vect
     while (!(spi0->cs & SPI0_CS_DONE)) {
         auto now = std::chrono::steady_clock::now();
         if (std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count() > 100) {
+            uint32_t spi_cs = spi0->cs;
+            uint32_t dma_cs = chan->cs;
+            uint32_t dma_debug = chan->debug;
+            uint32_t dma_cb = chan->conblk_ad;
             spi0->cs = 0;
             chan->cs = DMA_CS_ABORT;
             alloc.free(cb_buf);
             alloc.free(dma_buf);
-            last_error_ = "dma path: timeout waiting for spi0 dma transfer completion";
+            last_error_ = std::string("dma path: timeout waiting for spi0 dma transfer completion") +
+                          " spi_cs=0x" + [&]{ char b[16]; std::snprintf(b, sizeof(b), "%08x", spi_cs); return std::string(b); }() +
+                          " dma_cs=0x" + [&]{ char b[16]; std::snprintf(b, sizeof(b), "%08x", dma_cs); return std::string(b); }() +
+                          " dma_debug=0x" + [&]{ char b[16]; std::snprintf(b, sizeof(b), "%08x", dma_debug); return std::string(b); }() +
+                          " conblk=0x" + [&]{ char b[16]; std::snprintf(b, sizeof(b), "%08x", dma_cb); return std::string(b); }();
             return false;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
