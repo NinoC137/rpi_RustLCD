@@ -1,6 +1,6 @@
 use std::env;
 
-use crate::framebuffer::{DirtyRegion, FrameBuffer, PageBuffer, Rgb565};
+use crate::framebuffer::{DirtyRegion, FlushOrder, FrameBuffer, PageBuffer, Rgb565};
 use crate::panel::{ili9486::Ili9486, Panel, PanelConfig};
 use crate::render::patterns;
 
@@ -48,6 +48,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut pattern = Pattern::Red;
     let mut use_page_flush = false;
     let mut page_height: u16 = 40;
+    let flush_order = FlushOrder::RowMajor;
 
     let args: Vec<String> = env::args().collect();
     let mut i = 1;
@@ -104,7 +105,13 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         i += 1;
     }
 
-    let mut fb = FrameBuffer::new(width, height);
+    let (panel_width, panel_height) = if madctl == 0x88 {
+        (height, width)
+    } else {
+        (width, height)
+    };
+
+    let mut fb = FrameBuffer::new(panel_width, panel_height);
     match pattern {
         Pattern::Red => fb.clear(Rgb565::RED),
         Pattern::Green => fb.clear(Rgb565::GREEN),
@@ -119,11 +126,12 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let cfg = PanelConfig {
-        width,
-        height,
+        width: panel_width,
+        height: panel_height,
         madctl,
         pixel_format,
         invert,
+        flush_order,
         spi_path: spi,
         spi_hz,
         dc_pin: dc,
@@ -133,14 +141,14 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     panel.init()?;
 
     if use_page_flush {
-        let mut page = PageBuffer::new(width, page_height);
+        let mut page = PageBuffer::new(panel_width, page_height);
         let mut y = 0u16;
-        while y < height {
-            let h = page_height.min(height - y);
+        while y < panel_height {
+            let h = page_height.min(panel_height - y);
             let region = DirtyRegion {
                 x: 0,
                 y,
-                width,
+                width: panel_width,
                 height: h,
             };
             fb.copy_region_to_page(region, &mut page);
