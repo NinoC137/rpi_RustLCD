@@ -4,6 +4,13 @@ use spidev::{SpiModeFlags, Spidev, SpidevOptions};
 
 pub trait SpiBus {
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn std::error::Error>>;
+
+    fn write_chunks(&mut self, chunks: &[&[u8]]) -> Result<(), Box<dyn std::error::Error>> {
+        for chunk in chunks {
+            self.write(chunk)?;
+        }
+        Ok(())
+    }
 }
 
 pub struct LinuxSpiBus {

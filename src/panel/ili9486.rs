@@ -1,7 +1,7 @@
 use std::{thread, time::Duration};
 
 use crate::bus::spi::{LinuxSpiBus, SpiBus};
-use crate::framebuffer::{DirtyRegion, FrameBuffer, PageBuffer};
+use crate::framebuffer::{DirtyRegion, FrameBuffer, PageBuffer, TransferBuffer};
 use crate::gpio::{OutputPin, SysfsGpioPin};
 use crate::panel::{Panel, PanelConfig};
 
@@ -97,18 +97,23 @@ impl Panel for Ili9486 {
         Ok(())
     }
 
-    fn flush(&mut self, fb: &FrameBuffer) -> Result<(), Box<dyn std::error::Error>> {
+    fn make_transfer_buffer(&self, fb: &FrameBuffer) -> TransferBuffer {
+        fb.to_transfer_buffer(self.cfg.pixel_format, self.cfg.flush_order)
+    }
+
+    fn flush_transfer_buffer(
+        &mut self,
+        tx: &TransferBuffer,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         self.set_window(0, 0, self.cfg.width - 1, self.cfg.height - 1)?;
         self.dc.set_high()?;
-        let bytes = if self.cfg.pixel_format == 0x66 {
-            fb.as_bytes_666_from_565_with_order(self.cfg.flush_order)
-        } else {
-            fb.as_bytes_be_with_order(self.cfg.flush_order)
-        };
-        for chunk in bytes.chunks(4096) {
-            self.spi.write(chunk)?;
-        }
+        self.spi.write(tx.as_slice())?;
         Ok(())
+    }
+
+    fn flush(&mut self, fb: &FrameBuffer) -> Result<(), Box<dyn std::error::Error>> {
+        let tx = self.make_transfer_buffer(fb);
+        self.flush_transfer_buffer(&tx)
     }
 
     fn flush_region(

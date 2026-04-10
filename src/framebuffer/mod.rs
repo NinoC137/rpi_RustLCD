@@ -21,6 +21,10 @@ pub struct FrameBuffer {
     pixels: Vec<Rgb565>,
 }
 
+pub struct TransferBuffer {
+    bytes: Vec<u8>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FlushOrder {
     RowMajor,
@@ -128,6 +132,15 @@ impl FrameBuffer {
         }
     }
 
+    pub fn to_transfer_buffer(&self, pixel_format: u8, order: FlushOrder) -> TransferBuffer {
+        let bytes = if pixel_format == 0x66 {
+            self.as_bytes_666_from_565_with_order(order)
+        } else {
+            self.as_bytes_be_with_order(order)
+        };
+        TransferBuffer { bytes }
+    }
+
     pub fn copy_region_to_page(&self, region: DirtyRegion, page: &mut PageBuffer) {
         let rows = region
             .height
@@ -172,5 +185,27 @@ impl PageBuffer {
             out.extend_from_slice(&px.to_be_bytes());
         }
         out
+    }
+}
+
+impl TransferBuffer {
+    pub fn new() -> Self {
+        Self { bytes: Vec::new() }
+    }
+
+    pub fn from_bytes(bytes: Vec<u8>) -> Self {
+        Self { bytes }
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        &self.bytes
+    }
+
+    pub fn len(&self) -> usize {
+        self.bytes.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.bytes.is_empty()
     }
 }

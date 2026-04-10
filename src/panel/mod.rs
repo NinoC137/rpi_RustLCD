@@ -1,6 +1,6 @@
 pub mod ili9486;
 
-use crate::framebuffer::{DirtyRegion, FlushOrder, FrameBuffer, PageBuffer};
+use crate::framebuffer::{DirtyRegion, FlushOrder, FrameBuffer, PageBuffer, TransferBuffer};
 
 #[derive(Debug, Clone)]
 pub struct PanelConfig {
@@ -18,6 +18,11 @@ pub struct PanelConfig {
 
 pub trait Panel {
     fn init(&mut self) -> Result<(), Box<dyn std::error::Error>>;
+    fn make_transfer_buffer(&self, fb: &FrameBuffer) -> TransferBuffer;
+    fn flush_transfer_buffer(
+        &mut self,
+        tx: &TransferBuffer,
+    ) -> Result<(), Box<dyn std::error::Error>>;
     fn flush(&mut self, fb: &FrameBuffer) -> Result<(), Box<dyn std::error::Error>>;
     fn flush_region(
         &mut self,
