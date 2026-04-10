@@ -95,7 +95,11 @@ DmaBuffer MailboxAllocator::alloc(size_t size, size_t align) {
     alloc_msg.end_tag = MBOX_TAG_LAST;
 
     if (!mbox_property(fd_, &alloc_msg) || alloc_msg.alloc_size == 0) {
-        last_error_ = std::string("mailbox allocate-memory ioctl failed: ") + std::strerror(errno);
+        last_error_ = std::string("mailbox allocate-memory ioctl failed") +
+                      " size=" + std::to_string(size) +
+                      " align=" + std::to_string(align) +
+                      " flags=" + std::to_string(MEM_FLAG_L1_NONALLOCATING | MEM_FLAG_ZERO) +
+                      ": " + std::strerror(errno);
         return buf;
     }
 

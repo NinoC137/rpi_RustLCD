@@ -50,7 +50,7 @@ bool DmaSpiBackend::flush_dma_candidate(const FlushRequest& req, const std::vect
     }
     std::memcpy(dma_buf.virt, bytes.data(), bytes.size());
 
-    auto cb_buf = alloc.alloc(sizeof(DmaControlBlock), 32);
+    auto cb_buf = alloc.alloc(4096, 4096);
     if (!cb_buf.virt || cb_buf.bus_addr == 0) {
         alloc.free(dma_buf);
         last_error_ = std::string("dma path: control-block alloc failed: ") + alloc.last_error();
