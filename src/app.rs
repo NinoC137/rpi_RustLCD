@@ -1,7 +1,7 @@
 use std::env;
 
 use crate::framebuffer::{DirtyRegion, FrameBuffer, PageBuffer, Rgb565};
-use crate::panel::{Panel, PanelConfig, ili9486::Ili9486};
+use crate::panel::{ili9486::Ili9486, Panel, PanelConfig};
 use crate::render::patterns;
 
 #[derive(Debug, Clone, Copy)]
@@ -15,6 +15,7 @@ enum Pattern {
     Quad,
     Xo,
     Status,
+    DebugMap,
 }
 
 impl Pattern {
@@ -28,6 +29,7 @@ impl Pattern {
             "quad" => Self::Quad,
             "xo" => Self::Xo,
             "status" => Self::Status,
+            "debugmap" => Self::DebugMap,
             _ => Self::Red,
         }
     }
@@ -51,18 +53,52 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
-            "--spi" => { i += 1; spi = args[i].clone(); }
-            "--spi-hz" => { i += 1; spi_hz = args[i].parse()?; }
-            "--dc" => { i += 1; dc = args[i].parse()?; }
-            "--rst" => { i += 1; rst = args[i].parse()?; }
-            "--width" => { i += 1; width = args[i].parse()?; }
-            "--height" => { i += 1; height = args[i].parse()?; }
-            "--madctl" => { i += 1; madctl = u8::from_str_radix(args[i].trim_start_matches("0x"), 16)?; }
-            "--pixel-format" => { i += 1; pixel_format = u8::from_str_radix(args[i].trim_start_matches("0x"), 16)?; }
-            "--invert" => { invert = true; }
-            "--pattern" => { i += 1; pattern = Pattern::parse(&args[i]); }
-            "--page-flush" => { use_page_flush = true; }
-            "--page-height" => { i += 1; page_height = args[i].parse()?; }
+            "--spi" => {
+                i += 1;
+                spi = args[i].clone();
+            }
+            "--spi-hz" => {
+                i += 1;
+                spi_hz = args[i].parse()?;
+            }
+            "--dc" => {
+                i += 1;
+                dc = args[i].parse()?;
+            }
+            "--rst" => {
+                i += 1;
+                rst = args[i].parse()?;
+            }
+            "--width" => {
+                i += 1;
+                width = args[i].parse()?;
+            }
+            "--height" => {
+                i += 1;
+                height = args[i].parse()?;
+            }
+            "--madctl" => {
+                i += 1;
+                madctl = u8::from_str_radix(args[i].trim_start_matches("0x"), 16)?;
+            }
+            "--pixel-format" => {
+                i += 1;
+                pixel_format = u8::from_str_radix(args[i].trim_start_matches("0x"), 16)?;
+            }
+            "--invert" => {
+                invert = true;
+            }
+            "--pattern" => {
+                i += 1;
+                pattern = Pattern::parse(&args[i]);
+            }
+            "--page-flush" => {
+                use_page_flush = true;
+            }
+            "--page-height" => {
+                i += 1;
+                page_height = args[i].parse()?;
+            }
             _ => {}
         }
         i += 1;
@@ -79,9 +115,20 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         Pattern::Quad => patterns::quad(&mut fb),
         Pattern::Xo => patterns::xo_center_demo(&mut fb),
         Pattern::Status => patterns::status_page_demo(&mut fb),
+        Pattern::DebugMap => patterns::debug_map(&mut fb),
     }
 
-    let cfg = PanelConfig { width, height, madctl, pixel_format, invert, spi_path: spi, spi_hz, dc_pin: dc, rst_pin: rst };
+    let cfg = PanelConfig {
+        width,
+        height,
+        madctl,
+        pixel_format,
+        invert,
+        spi_path: spi,
+        spi_hz,
+        dc_pin: dc,
+        rst_pin: rst,
+    };
     let mut panel = Ili9486::new(cfg)?;
     panel.init()?;
 
@@ -90,7 +137,12 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         let mut y = 0u16;
         while y < height {
             let h = page_height.min(height - y);
-            let region = DirtyRegion { x: 0, y, width, height: h };
+            let region = DirtyRegion {
+                x: 0,
+                y,
+                width,
+                height: h,
+            };
             fb.copy_region_to_page(region, &mut page);
             panel.flush_region(region, &page)?;
             y = y.saturating_add(page_height);
