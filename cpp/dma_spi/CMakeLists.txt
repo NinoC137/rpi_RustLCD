@@ -10,6 +10,7 @@ add_executable(dma_spi_flush
     src/dma_mailbox.cpp
     src/mmio_map.cpp
     src/dma_backend.cpp
+    src/demo_pattern.cpp
 )
 
 target_include_directories(dma_spi_flush PRIVATE include)

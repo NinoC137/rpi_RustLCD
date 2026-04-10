@@ -1,4 +1,5 @@
 #include "dma_backend.hpp"
+#include "spi0_regs.hpp"
 
 #include <chrono>
 #include <cstring>
@@ -64,7 +65,16 @@ bool DmaSpiBackend::flush_dma_candidate(const FlushRequest& req, const std::vect
         return false;
     }
 
+    MmioMap spi_regs;
+    if (!spi_regs.map(PERI_PHYS_BASE_PI3 + SPI0_BASE_OFFSET, 0x100)) {
+        alloc.free(cb_buf);
+        alloc.free(dma_buf);
+        last_error_ = spi_regs.last_error();
+        return false;
+    }
+
     auto* chan = dma_regs.as<DmaChannelRegisters>();
+    auto* spi0 = spi_regs.as<Spi0Registers>();
     auto* cb = reinterpret_cast<DmaControlBlock*>(cb_buf.virt);
     *cb = {};
     cb->transfer_info = DMA_TI_NO_WIDE_BURSTS | DMA_TI_WAIT_RESP | DMA_TI_SRC_INC | DMA_TI_DEST_DREQ |
@@ -75,21 +85,34 @@ bool DmaSpiBackend::flush_dma_candidate(const FlushRequest& req, const std::vect
     cb->stride = 0;
     cb->next_cb = 0;
 
+    spi0->cs = SPI0_CS_CLEAR_RX | SPI0_CS_CLEAR_TX;
+    spi0->dlen = static_cast<uint32_t>(bytes.size());
+    spi0->cs = SPI0_CS_DMAEN | SPI0_CS_TA | SPI0_CS_CLEAR_RX | SPI0_CS_CLEAR_TX | SPI0_CS_CS(0);
+
     chan->cs = DMA_CS_RESET;
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
     chan->conblk_ad = cb_buf.bus_addr;
     chan->cs = DMA_CS_PRIORITY(8) | DMA_CS_PANIC_PRIORITY(8) | DMA_CS_DISDEBUG |
                DMA_CS_WAIT_FOR_OUTSTANDING_WRITES | DMA_CS_ACTIVE;
 
-    // This is still a candidate path: CB and channel setup are real, but SPI0
-    // side-band register programming / pacing / completion detection are not yet
-    // complete enough for production LCD use.
-    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    auto start = std::chrono::steady_clock::now();
+    while (!(spi0->cs & SPI0_CS_DONE)) {
+        auto now = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count() > 100) {
+            spi0->cs = 0;
+            chan->cs = DMA_CS_ABORT;
+            alloc.free(cb_buf);
+            alloc.free(dma_buf);
+            last_error_ = "timeout waiting for spi0 dma transfer completion";
+            return false;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
 
+    spi0->cs = SPI0_CS_CLEAR_RX | SPI0_CS_CLEAR_TX;
     alloc.free(cb_buf);
     alloc.free(dma_buf);
-    last_error_ = "dma candidate path reached channel setup, but spi0 dma handoff is incomplete";
-    return false;
+    return true;
 }
 
 } // namespace dma_spi
