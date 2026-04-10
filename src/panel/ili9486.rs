@@ -107,7 +107,8 @@ impl Panel for Ili9486 {
     ) -> Result<(), Box<dyn std::error::Error>> {
         self.set_window(0, 0, self.cfg.width - 1, self.cfg.height - 1)?;
         self.dc.set_high()?;
-        self.spi.write(tx.as_slice())?;
+        self.spi
+            .write_buffer(tx.as_slice(), self.cfg.transfer_mode)?;
         Ok(())
     }
 

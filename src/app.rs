@@ -1,5 +1,6 @@
 use std::env;
 
+use crate::bus::spi::TransferMode;
 use crate::framebuffer::{DirtyRegion, FlushOrder, FrameBuffer, PageBuffer, Rgb565};
 use crate::panel::{ili9486::Ili9486, Panel, PanelConfig};
 use crate::render::patterns;
@@ -49,6 +50,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut use_page_flush = false;
     let mut page_height: u16 = 40;
     let flush_order = FlushOrder::RowMajor;
+    let mut transfer_mode = TransferMode::Blocking;
 
     let args: Vec<String> = env::args().collect();
     let mut i = 1;
@@ -100,6 +102,18 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                 i += 1;
                 page_height = args[i].parse()?;
             }
+            "--tx-mode" => {
+                i += 1;
+                transfer_mode = match args[i].as_str() {
+                    "blocking" => TransferMode::Blocking,
+                    "dma" | "dma-candidate" => TransferMode::DmaCandidate,
+                    s if s.starts_with("chunked:") => {
+                        let n = s.split(':').nth(1).ok_or("missing chunk size")?.parse()?;
+                        TransferMode::Chunked { chunk_size: n }
+                    }
+                    _ => TransferMode::Blocking,
+                };
+            }
             _ => {}
         }
         i += 1;
@@ -134,6 +148,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         flush_order,
         spi_path: spi,
         spi_hz,
+        transfer_mode,
         dc_pin: dc,
         rst_pin: rst,
     };

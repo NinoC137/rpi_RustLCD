@@ -1,5 +1,6 @@
 pub mod ili9486;
 
+use crate::bus::spi::TransferMode;
 use crate::framebuffer::{DirtyRegion, FlushOrder, FrameBuffer, PageBuffer, TransferBuffer};
 
 #[derive(Debug, Clone)]
@@ -12,6 +13,7 @@ pub struct PanelConfig {
     pub flush_order: FlushOrder,
     pub spi_path: String,
     pub spi_hz: u32,
+    pub transfer_mode: TransferMode,
     pub dc_pin: u8,
     pub rst_pin: u8,
 }

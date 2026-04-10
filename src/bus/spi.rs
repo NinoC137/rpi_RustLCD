@@ -2,6 +2,13 @@ use std::io::Write;
 
 use spidev::{SpiModeFlags, Spidev, SpidevOptions};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TransferMode {
+    Blocking,
+    Chunked { chunk_size: usize },
+    DmaCandidate,
+}
+
 pub trait SpiBus {
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn std::error::Error>>;
 
@@ -10,6 +17,22 @@ pub trait SpiBus {
             self.write(chunk)?;
         }
         Ok(())
+    }
+
+    fn write_buffer(
+        &mut self,
+        data: &[u8],
+        mode: TransferMode,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        match mode {
+            TransferMode::Blocking | TransferMode::DmaCandidate => self.write(data),
+            TransferMode::Chunked { chunk_size } => {
+                for chunk in data.chunks(chunk_size.max(1)) {
+                    self.write(chunk)?;
+                }
+                Ok(())
+            }
+        }
     }
 }
 
