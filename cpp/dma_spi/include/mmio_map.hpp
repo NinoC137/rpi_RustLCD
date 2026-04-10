@@ -22,8 +22,10 @@ public:
     std::string last_error() const { return last_error_; }
 
 private:
+    void* map_base_ = nullptr;
     void* virt_ = nullptr;
     size_t size_ = 0;
+    size_t mapped_size_ = 0;
     std::string last_error_;
 };
 
