@@ -39,13 +39,13 @@ bool DmaSpiBackend::flush_blocking(const FlushRequest& req, const std::vector<ui
 bool DmaSpiBackend::flush_dma_candidate(const FlushRequest& req, const std::vector<uint8_t>& bytes) {
     MailboxAllocator alloc;
     if (!alloc.open()) {
-        last_error_ = alloc.last_error();
+        last_error_ = std::string("dma path: mailbox open failed: ") + alloc.last_error();
         return false;
     }
 
     auto dma_buf = alloc.alloc(bytes.size());
     if (!dma_buf.virt || dma_buf.bus_addr == 0) {
-        last_error_ = alloc.last_error();
+        last_error_ = std::string("dma path: payload buffer alloc failed: ") + alloc.last_error();
         return false;
     }
     std::memcpy(dma_buf.virt, bytes.data(), bytes.size());
@@ -53,7 +53,7 @@ bool DmaSpiBackend::flush_dma_candidate(const FlushRequest& req, const std::vect
     auto cb_buf = alloc.alloc(sizeof(DmaControlBlock), 32);
     if (!cb_buf.virt || cb_buf.bus_addr == 0) {
         alloc.free(dma_buf);
-        last_error_ = alloc.last_error();
+        last_error_ = std::string("dma path: control-block alloc failed: ") + alloc.last_error();
         return false;
     }
 
@@ -61,7 +61,7 @@ bool DmaSpiBackend::flush_dma_candidate(const FlushRequest& req, const std::vect
     if (!dma_regs.map(PERI_PHYS_BASE_PI3 + DMA_BASE_OFFSET + 5 * DMA_CHANNEL_OFFSET, 0x100)) {
         alloc.free(cb_buf);
         alloc.free(dma_buf);
-        last_error_ = dma_regs.last_error();
+        last_error_ = std::string("dma path: map dma channel regs failed: ") + dma_regs.last_error();
         return false;
     }
 
@@ -69,7 +69,7 @@ bool DmaSpiBackend::flush_dma_candidate(const FlushRequest& req, const std::vect
     if (!spi_regs.map(PERI_PHYS_BASE_PI3 + SPI0_BASE_OFFSET, 0x100)) {
         alloc.free(cb_buf);
         alloc.free(dma_buf);
-        last_error_ = spi_regs.last_error();
+        last_error_ = std::string("dma path: map spi0 regs failed: ") + spi_regs.last_error();
         return false;
     }
 
@@ -103,7 +103,7 @@ bool DmaSpiBackend::flush_dma_candidate(const FlushRequest& req, const std::vect
             chan->cs = DMA_CS_ABORT;
             alloc.free(cb_buf);
             alloc.free(dma_buf);
-            last_error_ = "timeout waiting for spi0 dma transfer completion";
+            last_error_ = "dma path: timeout waiting for spi0 dma transfer completion";
             return false;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));

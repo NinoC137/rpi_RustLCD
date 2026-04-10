@@ -64,7 +64,7 @@ bool MailboxAllocator::open() {
     close();
     fd_ = ::open(DEVICE_FILE_NAME, 0);
     if (fd_ < 0) {
-        last_error_ = std::strerror(errno);
+        last_error_ = std::string("open ") + DEVICE_FILE_NAME + ": " + std::strerror(errno);
         return false;
     }
     return true;
@@ -95,7 +95,7 @@ DmaBuffer MailboxAllocator::alloc(size_t size, size_t align) {
     alloc_msg.end_tag = MBOX_TAG_LAST;
 
     if (!mbox_property(fd_, &alloc_msg) || alloc_msg.alloc_size == 0) {
-        last_error_ = std::strerror(errno);
+        last_error_ = std::string("mailbox allocate-memory ioctl failed: ") + std::strerror(errno);
         return buf;
     }
 
@@ -111,7 +111,7 @@ DmaBuffer MailboxAllocator::alloc(size_t size, size_t align) {
     lock_msg.end_tag = MBOX_TAG_LAST;
 
     if (!mbox_property(fd_, &lock_msg) || lock_msg.handle == 0) {
-        last_error_ = std::strerror(errno);
+        last_error_ = std::string("mailbox lock-memory ioctl failed: ") + std::strerror(errno);
         return {};
     }
 
