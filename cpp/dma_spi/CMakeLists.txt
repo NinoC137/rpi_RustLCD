@@ -8,6 +8,7 @@ add_executable(dma_spi_flush
     src/main.cpp
     src/spi_transport.cpp
     src/dma_mailbox.cpp
+    src/mmio_map.cpp
     src/dma_backend.cpp
 )
 

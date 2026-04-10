@@ -1,7 +1,10 @@
 #include "dma_backend.hpp"
 
+#include <chrono>
+#include <cstring>
 #include <fstream>
 #include <iterator>
+#include <thread>
 
 namespace dma_spi {
 
@@ -33,14 +36,59 @@ bool DmaSpiBackend::flush_blocking(const FlushRequest& req, const std::vector<ui
 }
 
 bool DmaSpiBackend::flush_dma_candidate(const FlushRequest& req, const std::vector<uint8_t>& bytes) {
-    (void)req;
-    (void)bytes;
     MailboxAllocator alloc;
     if (!alloc.open()) {
         last_error_ = alloc.last_error();
         return false;
     }
-    last_error_ = "dma candidate path not implemented yet";
+
+    auto dma_buf = alloc.alloc(bytes.size());
+    if (!dma_buf.virt || dma_buf.bus_addr == 0) {
+        last_error_ = alloc.last_error();
+        return false;
+    }
+    std::memcpy(dma_buf.virt, bytes.data(), bytes.size());
+
+    auto cb_buf = alloc.alloc(sizeof(DmaControlBlock), 32);
+    if (!cb_buf.virt || cb_buf.bus_addr == 0) {
+        alloc.free(dma_buf);
+        last_error_ = alloc.last_error();
+        return false;
+    }
+
+    MmioMap dma_regs;
+    if (!dma_regs.map(PERI_PHYS_BASE_PI3 + DMA_BASE_OFFSET + 5 * DMA_CHANNEL_OFFSET, 0x100)) {
+        alloc.free(cb_buf);
+        alloc.free(dma_buf);
+        last_error_ = dma_regs.last_error();
+        return false;
+    }
+
+    auto* chan = dma_regs.as<DmaChannelRegisters>();
+    auto* cb = reinterpret_cast<DmaControlBlock*>(cb_buf.virt);
+    *cb = {};
+    cb->transfer_info = DMA_TI_NO_WIDE_BURSTS | DMA_TI_WAIT_RESP | DMA_TI_SRC_INC | DMA_TI_DEST_DREQ |
+                        DMA_TI_PERMAP(DMA_DREQ_SPI_TX);
+    cb->src_addr = dma_buf.bus_addr;
+    cb->dst_addr = PERI_BUS_BASE + SPI0_BASE_OFFSET + SPI0_FIFO_OFFSET;
+    cb->transfer_len = static_cast<uint32_t>(bytes.size());
+    cb->stride = 0;
+    cb->next_cb = 0;
+
+    chan->cs = DMA_CS_RESET;
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    chan->conblk_ad = cb_buf.bus_addr;
+    chan->cs = DMA_CS_PRIORITY(8) | DMA_CS_PANIC_PRIORITY(8) | DMA_CS_DISDEBUG |
+               DMA_CS_WAIT_FOR_OUTSTANDING_WRITES | DMA_CS_ACTIVE;
+
+    // This is still a candidate path: CB and channel setup are real, but SPI0
+    // side-band register programming / pacing / completion detection are not yet
+    // complete enough for production LCD use.
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+
+    alloc.free(cb_buf);
+    alloc.free(dma_buf);
+    last_error_ = "dma candidate path reached channel setup, but spi0 dma handoff is incomplete";
     return false;
 }
 

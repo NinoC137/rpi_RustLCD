@@ -1,6 +1,8 @@
 #pragma once
 
+#include "bcm_dma.hpp"
 #include "dma_mailbox.hpp"
+#include "mmio_map.hpp"
 #include "spi_transport.hpp"
 
 #include <cstddef>
