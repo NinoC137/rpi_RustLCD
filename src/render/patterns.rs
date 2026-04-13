@@ -243,7 +243,7 @@ fn apple_delta_dashboard_portrait(fb: &mut FrameBuffer, w: i32, h: i32) {
     let sys = read_system_status();
     let time_text = format!("{}:{}", hh, mm);
     draw_text_5x7(fb, (outer_x + 14) as u16, (time_y + 12) as u16, "TIME", rgb565(150, 150, 160), 1, 1);
-    draw_big_digits_centered(fb, outer_x, time_y + 34, outer_w, &time_text, rgb565(250, 250, 252), 4, 4, 8);
+    draw_big_digits_centered(fb, outer_x - 8, time_y + 34, outer_w, &time_text, rgb565(250, 250, 252), 3, 4, 8);
     draw_center_text_5x7(fb, outer_x, time_y + 82, outer_w, &time_period_label(), rgb565(120, 194, 255), 1, 1);
 
     let inset = outer_x + 14;
