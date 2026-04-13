@@ -46,7 +46,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut height: u16 = 320;
     let mut madctl: u8 = 0x88;
     let mut pixel_format: u8 = 0x66;
-    let mut invert = true;
+    let mut invert = false;
     let mut pattern = Pattern::Red;
     let mut use_page_flush = false;
     let mut page_height: u16 = 40;

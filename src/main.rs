@@ -5,6 +5,7 @@ mod framebuffer;
 mod gpio;
 mod panel;
 mod render;
+mod sysinfo;
 
 fn main() {
     if let Err(e) = app::run() {
