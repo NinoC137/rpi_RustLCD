@@ -182,8 +182,10 @@ fn apple_delta_dashboard_landscape(fb: &mut FrameBuffer, w: i32, h: i32) {
     draw_text_5x7(fb, 38, 168, &time_period_label(), rgb565(120, 194, 255), 2, 1);
 
     draw_text_5x7(fb, 266, 88, "SYSTEM", rgb565(130, 130, 140), 2, 1);
-    draw_text_5x7(fb, 266, 116, &truncate_label(&sys.top_label, 10), Rgb565::WHITE, 2, 1);
-    draw_text_5x7(fb, 266, 140, &format!("CPU {} MEM {}", sys.top_cpu, sys.top_mem), Rgb565::WHITE, 1, 1);
+    if let Some(item) = sys.top_threads.get(0) {
+        draw_text_5x7(fb, 266, 116, &truncate_label(&item.label, 10), Rgb565::WHITE, 2, 1);
+        draw_text_5x7(fb, 266, 140, &format!("CPU {} MEM {}", item.cpu, item.mem), Rgb565::WHITE, 1, 1);
+    }
     draw_text_5x7(fb, 266, 166, &format!("SYS {} {}", sys.cpu_percent, sys.mem_percent), rgb565(0, 113, 227), 1, 1);
 
     draw_text_5x7(fb, 36, 222, "DELTA", rgb565(130, 130, 140), 2, 1);
