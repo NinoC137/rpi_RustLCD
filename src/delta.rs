@@ -14,8 +14,11 @@ const FALLBACK_PASSWORDS: [(&str, &str); 5] = [
     ("PRISON", "8777"),
 ];
 
+const FETCH_RETRIES: usize = 3;
+const FETCH_TIMEOUT_SECONDS: &str = "0.1";
+
 pub fn load_passwords() -> Vec<DeltaPassword> {
-    fetch_passwords_from_curl().unwrap_or_else(fallback_passwords)
+    fetch_passwords_with_retry().unwrap_or_else(fallback_passwords)
 }
 
 fn fallback_passwords() -> Vec<DeltaPassword> {
@@ -28,9 +31,25 @@ fn fallback_passwords() -> Vec<DeltaPassword> {
         .collect()
 }
 
-fn fetch_passwords_from_curl() -> Option<Vec<DeltaPassword>> {
+fn fetch_passwords_with_retry() -> Option<Vec<DeltaPassword>> {
+    for _ in 0..FETCH_RETRIES {
+        if let Some(items) = fetch_passwords_from_curl_once() {
+            return Some(items);
+        }
+    }
+    None
+}
+
+fn fetch_passwords_from_curl_once() -> Option<Vec<DeltaPassword>> {
     let output = Command::new("curl")
-        .args(["-fsSL", "https://api.icofun.cn/api/delta_mima.php"])
+        .args([
+            "-fsSL",
+            "--connect-timeout",
+            FETCH_TIMEOUT_SECONDS,
+            "--max-time",
+            FETCH_TIMEOUT_SECONDS,
+            "https://api.icofun.cn/api/delta_mima.php",
+        ])
         .output()
         .ok()?;
 
