@@ -178,13 +178,13 @@ fn apple_delta_dashboard_landscape(fb: &mut FrameBuffer, w: i32, h: i32) {
     let (hh, mm) = current_hhmm_local();
     let sys = read_system_status();
     draw_text_5x7(fb, 36, 88, "TIME", rgb565(130, 130, 140), 2, 1);
-    draw_big_digits(fb, 32, 114, &format!("{}:{}", hh, mm), rgb565(248, 248, 250), 7, 5, 10);
+    draw_big_digits(fb, 36, 118, &format!("{}:{}", hh, mm), rgb565(248, 248, 250), 6, 4, 8);
     draw_text_5x7(fb, 38, 168, &time_period_label(), rgb565(120, 194, 255), 2, 1);
 
     draw_text_5x7(fb, 266, 88, "SYSTEM", rgb565(130, 130, 140), 2, 1);
-    draw_text_5x7(fb, 266, 118, &format!("CPU {}%", sys.cpu_percent), Rgb565::WHITE, 2, 1);
-    draw_text_5x7(fb, 266, 142, &format!("MEM {}%", sys.mem_percent), Rgb565::WHITE, 2, 1);
-    draw_text_5x7(fb, 266, 168, "LANDSCAPE", rgb565(0, 113, 227), 1, 1);
+    draw_text_5x7(fb, 266, 116, &truncate_label(&sys.top_label, 10), Rgb565::WHITE, 2, 1);
+    draw_text_5x7(fb, 266, 140, &format!("CPU {} MEM {}", sys.top_cpu, sys.top_mem), Rgb565::WHITE, 1, 1);
+    draw_text_5x7(fb, 266, 166, &format!("SYS {} {}", sys.cpu_percent, sys.mem_percent), rgb565(0, 113, 227), 1, 1);
 
     draw_text_5x7(fb, 36, 222, "DELTA", rgb565(130, 130, 140), 2, 1);
     draw_text_5x7(fb, 36, 242, "PASSWORDS", Rgb565::WHITE, 2, 1);
@@ -234,12 +234,12 @@ fn apple_delta_dashboard_portrait(fb: &mut FrameBuffer, w: i32, h: i32) {
     let (hh, mm) = current_hhmm_local();
     let sys = read_system_status();
     draw_text_5x7(fb, 34, 86, "TIME", rgb565(130, 130, 140), 2, 1);
-    draw_big_digits(fb, 30, 114, &format!("{}:{}", hh, mm), rgb565(248, 248, 250), 6, 4, 9);
+    draw_big_digits(fb, 36, 118, &format!("{}:{}", hh, mm), rgb565(248, 248, 250), 5, 4, 8);
     draw_text_5x7(fb, 34, 166, &time_period_label(), rgb565(120, 194, 255), 2, 1);
 
     draw_text_5x7(fb, 34, 222, "SYSTEM", rgb565(130, 130, 140), 1, 1);
-    draw_text_5x7(fb, 34, 238, &format!("CPU {}%", sys.cpu_percent), Rgb565::WHITE, 2, 1);
-    draw_text_5x7(fb, 170, 238, &format!("MEM {}%", sys.mem_percent), Rgb565::WHITE, 2, 1);
+    draw_text_5x7(fb, 34, 238, &truncate_label(&sys.top_label, 10), Rgb565::WHITE, 2, 1);
+    draw_text_5x7(fb, 34, 258, &format!("CPU {} MEM {}", sys.top_cpu, sys.top_mem), Rgb565::WHITE, 1, 1);
 
     draw_text_5x7(fb, 34, 304, "DELTA PASSWORDS", Rgb565::WHITE, 2, 1);
     let passwords = load_passwords();
@@ -445,5 +445,9 @@ fn weekday_short() -> String {
         7 => "SUN".to_string(),
         _ => "MON".to_string(),
     }
+}
+
+fn truncate_label(s: &str, max_len: usize) -> String {
+    s.chars().take(max_len).collect()
 }
 

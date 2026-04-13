@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, thread, time::Duration};
 
 use crate::framebuffer::{DirtyRegion, FlushOrder, FrameBuffer, PageBuffer, Rgb565};
 use crate::panel::{ili9486::Ili9486, Panel, PanelConfig};
@@ -50,6 +50,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut pattern = Pattern::Red;
     let mut use_page_flush = false;
     let mut page_height: u16 = 40;
+    let mut live = false;
+    let mut refresh_ms: u64 = 1000;
     let flush_order = FlushOrder::RowMajor;
 
     let args: Vec<String> = env::args().collect();
@@ -102,6 +104,13 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                 i += 1;
                 page_height = args[i].parse()?;
             }
+            "--live" => {
+                live = true;
+            }
+            "--refresh-ms" => {
+                i += 1;
+                refresh_ms = args[i].parse()?;
+            }
             _ => {}
         }
         i += 1;
@@ -112,21 +121,6 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         (width, height)
     };
-
-    let mut fb = FrameBuffer::new(panel_width, panel_height);
-    match pattern {
-        Pattern::Red => fb.clear(Rgb565::RED),
-        Pattern::Green => fb.clear(Rgb565::GREEN),
-        Pattern::Blue => fb.clear(Rgb565::BLUE),
-        Pattern::White => fb.clear(Rgb565::WHITE),
-        Pattern::Black => fb.clear(Rgb565::BLACK),
-        Pattern::Bars => patterns::color_bars(&mut fb),
-        Pattern::Quad => patterns::quad(&mut fb),
-        Pattern::Xo => patterns::xo_center_demo(&mut fb),
-        Pattern::Status => patterns::status_page_demo(&mut fb),
-        Pattern::Dashboard => patterns::apple_delta_dashboard_demo(&mut fb),
-        Pattern::DebugMap => patterns::debug_map(&mut fb),
-    }
 
     let cfg = PanelConfig {
         width: panel_width,
@@ -143,25 +137,47 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut panel = Ili9486::new(cfg)?;
     panel.init()?;
 
-    if use_page_flush {
-        let mut page = PageBuffer::new(panel_width, page_height);
-        let mut y = 0u16;
-        while y < panel_height {
-            let h = page_height.min(panel_height - y);
-            let region = DirtyRegion {
-                x: 0,
-                y,
-                width: panel_width,
-                height: h,
-            };
-            fb.copy_region_to_page(region, &mut page);
-            panel.flush_region(region, &page)?;
-            y = y.saturating_add(page_height);
+    loop {
+        let mut fb = FrameBuffer::new(panel_width, panel_height);
+        match pattern {
+            Pattern::Red => fb.clear(Rgb565::RED),
+            Pattern::Green => fb.clear(Rgb565::GREEN),
+            Pattern::Blue => fb.clear(Rgb565::BLUE),
+            Pattern::White => fb.clear(Rgb565::WHITE),
+            Pattern::Black => fb.clear(Rgb565::BLACK),
+            Pattern::Bars => patterns::color_bars(&mut fb),
+            Pattern::Quad => patterns::quad(&mut fb),
+            Pattern::Xo => patterns::xo_center_demo(&mut fb),
+            Pattern::Status => patterns::status_page_demo(&mut fb),
+            Pattern::Dashboard => patterns::apple_delta_dashboard_demo(&mut fb),
+            Pattern::DebugMap => patterns::debug_map(&mut fb),
         }
-        println!("ok: region page flush complete");
-    } else {
-        panel.flush(&fb)?;
-        println!("ok: full frame flush complete");
+
+        if use_page_flush {
+            let mut page = PageBuffer::new(panel_width, page_height);
+            let mut y = 0u16;
+            while y < panel_height {
+                let h = page_height.min(panel_height - y);
+                let region = DirtyRegion {
+                    x: 0,
+                    y,
+                    width: panel_width,
+                    height: h,
+                };
+                fb.copy_region_to_page(region, &mut page);
+                panel.flush_region(region, &page)?;
+                y = y.saturating_add(page_height);
+            }
+            println!("ok: region page flush complete");
+        } else {
+            panel.flush(&fb)?;
+            println!("ok: full frame flush complete");
+        }
+
+        if !live {
+            break;
+        }
+        thread::sleep(Duration::from_millis(refresh_ms.max(200)));
     }
 
     Ok(())
