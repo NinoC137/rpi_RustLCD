@@ -230,13 +230,12 @@ fn apple_delta_dashboard_portrait(fb: &mut FrameBuffer, w: i32, h: i32) {
     draw_watch_card(fb, outer_x, sys_y, outer_w, sys_h, rgb565(22, 22, 28));
 
     let list_y = sys_y + sys_h + 12;
-    let list_h = 126;
+    let list_h = 138;
     draw_watch_card(fb, outer_x, list_y, outer_w, list_h, rgb565(22, 22, 28));
 
     let stat_y = list_y + list_h + 12;
-    let stat_h = 40;
+    let stat_h = 42;
     draw_watch_card(fb, outer_x, stat_y, outer_w, stat_h, rgb565(22, 22, 28));
-    draw_watch_card(fb, outer_x, stat_y + stat_h + 10, outer_w, stat_h, rgb565(22, 22, 28));
 
     draw_center_text_5x7(fb, card1_x, top_y + 12, col_w, "MON", rgb565(228, 228, 232), 2, 1);
     draw_center_text_5x7(fb, card2_x, top_y + 12, col_w, &day_progress_pct(), rgb565(228, 228, 232), 2, 1);
@@ -245,28 +244,25 @@ fn apple_delta_dashboard_portrait(fb: &mut FrameBuffer, w: i32, h: i32) {
     let (hh, mm) = current_hhmm_local();
     let sys = read_system_status();
     draw_text_5x7(fb, (outer_x + 14) as u16, (time_y + 12) as u16, "TIME", rgb565(130, 130, 140), 1, 1);
-    draw_big_digits(fb, outer_x + 46, time_y + 34, &format!("{}:{}", hh, mm), rgb565(248, 248, 250), 4, 4, 8);
-    draw_center_text_5x7(fb, outer_x, time_y + 80, outer_w, &time_period_label(), rgb565(120, 194, 255), 1, 1);
+    draw_big_digits(fb, outer_x + 50, time_y + 36, &format!("{}:{}", hh, mm), rgb565(250, 250, 252), 4, 4, 8);
+    draw_center_text_5x7(fb, outer_x, time_y + 82, outer_w, &time_period_label(), rgb565(120, 194, 255), 1, 1);
 
     let inset = outer_x + 14;
     draw_text_5x7(fb, inset as u16, (sys_y + 10) as u16, "SYSTEM", rgb565(130, 130, 140), 1, 1);
-    draw_text_5x7(fb, inset as u16, (sys_y + 26) as u16, &truncate_label(&sys.top_label, 14), Rgb565::WHITE, 2, 1);
-    draw_text_5x7(fb, inset as u16, (sys_y + 46) as u16, &format!("CPU {} MEM {}", sys.top_cpu, sys.top_mem), Rgb565::WHITE, 1, 1);
+    draw_text_5x7(fb, inset as u16, (sys_y + 28) as u16, &truncate_label(&sys.top_label, 14), rgb565(245, 245, 247), 2, 1);
+    draw_text_5x7(fb, inset as u16, (sys_y + 48) as u16, &format!("CPU {} MEM {}", sys.top_cpu, sys.top_mem), rgb565(120, 194, 255), 1, 1);
 
     draw_text_5x7(fb, inset as u16, (list_y + 10) as u16, "DELTA PASSWORDS", rgb565(130, 130, 140), 1, 1);
     let passwords = load_passwords();
     let shown: Vec<_> = passwords.into_iter().take(4).collect();
-    let mut row_y = list_y + 28;
+    let mut row_y = list_y + 30;
     for item in shown.iter() {
         draw_password_row_480(fb, outer_x + 10, row_y, outer_w - 20, &item.location, &item.password);
-        row_y += 20;
+        row_y += 22;
     }
 
-    draw_text_5x7(fb, inset as u16, (stat_y + 14) as u16, "DAY", rgb565(130, 130, 140), 1, 1);
-    draw_text_5x7(fb, (outer_x + outer_w - 110) as u16, (stat_y + 12) as u16, &day_progress_label(), Rgb565::WHITE, 1, 1);
-    let stat2_y = stat_y + stat_h + 10;
-    draw_text_5x7(fb, inset as u16, (stat2_y + 14) as u16, "SYS", rgb565(130, 130, 140), 1, 1);
-    draw_text_5x7(fb, (outer_x + outer_w - 110) as u16, (stat2_y + 12) as u16, &format!("{} {}", sys.cpu_percent, sys.mem_percent), Rgb565::WHITE, 1, 1);
+    draw_text_5x7(fb, inset as u16, (stat_y + 15) as u16, "DAY", rgb565(130, 130, 140), 1, 1);
+    draw_text_5x7(fb, (outer_x + outer_w - 120) as u16, (stat_y + 13) as u16, &day_progress_label(), rgb565(245, 245, 247), 1, 1);
 }
 
 fn draw_watch_card(fb: &mut FrameBuffer, x: i32, y: i32, w: i32, h: i32, bg: Rgb565) {
