@@ -1,43 +1,78 @@
 # rpi_lcd_project
 
-Rust SPI LCD driver MVP for Raspberry Pi + ILI9486-class panel.
+Rust SPI LCD driver for Raspberry Pi + ILI9486-class panel.
 
-## Current known-good parameters
+## Default behavior
+
+Running without `--pattern` uses:
+
+- `dashboard`
+
+## Current default panel parameters
 
 - spi: `/dev/spidev0.0`
 - dc: `24`
 - rst: `25`
 - width: `480`
 - height: `320`
-- madctl: `0x48`
-- pixel-format: `0x55`
+- madctl: `0x88`
+- pixel-format: `0x66`
+- invert: `false`
 
-## Example
-
-```bash
-sudo ~/.cargo/bin/cargo run --release -- --pattern xo
-```
-
-Apple-style dashboard demo:
+## Build
 
 ```bash
-sudo ~/.cargo/bin/cargo run --release -- --pattern dashboard --page-flush --page-height 40
+cargo build --release
 ```
 
-Patterns:
+## Run
+
+```bash
+sudo ./target/release/rpi_lcd_project
+```
+
+Specify pattern explicitly:
+
+```bash
+sudo ./target/release/rpi_lcd_project --pattern dashboard
+```
+
+Live refresh:
+
+```bash
+sudo ./target/release/rpi_lcd_project --pattern dashboard --live --refresh-ms 1000
+```
+
+## Patterns
+
+- `dashboard`
+- `status`
+- `debugmap`
+- `xo`
+- `quad`
+- `bars`
 - `red`
 - `green`
 - `blue`
 - `white`
 - `black`
-- `bars`
-- `quad`
-- `xo`
-- `status`
-- `dashboard` (Apple-style time + Delta daily password dashboard)
 
-## Note:
+## Parameters
 
-当旋转屏幕方向时，可能会出现“屏幕内容呈现两列显示”，这个情况主要是因为宽高逻辑与显示刷新方向不匹配导致的。
+- `--pattern <name>`: select render pattern
+- `--spi <path>`: SPI device path
+- `--spi-hz <hz>`: SPI clock frequency
+- `--dc <pin>`: DC GPIO pin
+- `--rst <pin>`: reset GPIO pin
+- `--width <px>`: logical width before MADCTL remap
+- `--height <px>`: logical height before MADCTL remap
+- `--madctl <hex>`: panel MADCTL register value
+- `--pixel-format <hex>`: panel pixel format register value
+- `--invert`: enable panel inversion
+- `--live`: continuously redraw the screen
+- `--refresh-ms <ms>`: redraw interval in live mode
 
-例：旋转方向设定为`0x88` ，此时需要交换宽高数值。
+## Notes
+
+- With `madctl = 0x88`, the program internally swaps logical width and height for panel rendering.
+- Password data is fetched in a background cache thread with a default 100ms timeout.
