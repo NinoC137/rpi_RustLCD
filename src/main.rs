@@ -1,5 +1,6 @@
 mod app;
 mod bus;
+mod delta;
 mod framebuffer;
 mod gpio;
 mod panel;

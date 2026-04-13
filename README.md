@@ -18,6 +18,12 @@ Rust SPI LCD driver MVP for Raspberry Pi + ILI9486-class panel.
 sudo ~/.cargo/bin/cargo run --release -- --pattern xo
 ```
 
+Apple-style dashboard demo:
+
+```bash
+sudo ~/.cargo/bin/cargo run --release -- --pattern dashboard --page-flush --page-height 40
+```
+
 Patterns:
 - `red`
 - `green`
@@ -27,6 +33,8 @@ Patterns:
 - `bars`
 - `quad`
 - `xo`
+- `status`
+- `dashboard` (Apple-style time + Delta daily password dashboard)
 
 ## Note:
 

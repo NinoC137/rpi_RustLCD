@@ -15,6 +15,7 @@ enum Pattern {
     Quad,
     Xo,
     Status,
+    Dashboard,
     DebugMap,
 }
 
@@ -29,6 +30,7 @@ impl Pattern {
             "quad" => Self::Quad,
             "xo" => Self::Xo,
             "status" => Self::Status,
+            "dashboard" | "apple-delta" => Self::Dashboard,
             "debugmap" => Self::DebugMap,
             _ => Self::Red,
         }
@@ -122,6 +124,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         Pattern::Quad => patterns::quad(&mut fb),
         Pattern::Xo => patterns::xo_center_demo(&mut fb),
         Pattern::Status => patterns::status_page_demo(&mut fb),
+        Pattern::Dashboard => patterns::apple_delta_dashboard_demo(&mut fb),
         Pattern::DebugMap => patterns::debug_map(&mut fb),
     }
 
