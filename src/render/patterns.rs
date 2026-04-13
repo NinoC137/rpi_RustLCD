@@ -2,7 +2,7 @@ use crate::delta::load_passwords;
 use crate::framebuffer::{FrameBuffer, Rgb565};
 use crate::render::primitives::{
     draw_circle_ring, draw_line, draw_rect_outline, draw_round_rect_filled, draw_text_5x7,
-    draw_vertical_gradient, fill_rect, fill_rect_i32, rgb565,
+    draw_vertical_gradient, fill_rect, rgb565,
 };
 
 pub fn debug_map(fb: &mut FrameBuffer) {
@@ -346,20 +346,6 @@ fn current_weekday_local() -> u32 {
     1
 }
 
-fn current_day_of_month() -> u32 {
-    use std::process::Command;
-    if let Ok(output) = Command::new("date").args(["+%d"]).output() {
-        if output.status.success() {
-            if let Ok(s) = String::from_utf8(output.stdout) {
-                if let Ok(v) = s.trim().parse::<u32>() {
-                    return v;
-                }
-            }
-        }
-    }
-    13
-}
-
 fn current_hms_local() -> (u32, u32, u32) {
     use std::process::Command;
     if let Ok(output) = Command::new("date").args(["+%H %M %S"]).output() {
@@ -410,11 +396,6 @@ fn weekday_short() -> String {
         7 => "SUN".to_string(),
         _ => "MON".to_string(),
     }
-}
-
-fn lucky_number() -> String {
-    let d = current_day_of_month();
-    format!("{:02}", (d * 17 + 8) % 100)
 }
 
 fn mode_label() -> String {
