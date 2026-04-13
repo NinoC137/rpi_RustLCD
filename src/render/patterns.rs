@@ -141,94 +141,89 @@ pub fn apple_delta_dashboard_demo(fb: &mut FrameBuffer) {
     let w = fb.width() as i32;
     let h = fb.height() as i32;
 
-    let bg_top = rgb565(10, 10, 14);
+    let bg_top = rgb565(8, 8, 12);
     let bg_bottom = rgb565(0, 0, 0);
     draw_vertical_gradient(fb, 0, 0, w, h, bg_top, bg_bottom);
 
-    draw_round_rect_filled(fb, 8, 8, w - 16, h - 16, 18, rgb565(14, 14, 18));
-    draw_round_rect_filled(fb, 12, 12, w - 24, h - 24, 16, rgb565(22, 22, 28));
+    draw_round_rect_filled(fb, 6, 6, w - 12, h - 12, 18, rgb565(14, 14, 18));
+    draw_round_rect_filled(fb, 10, 10, w - 20, h - 20, 16, rgb565(20, 20, 26));
 
-    let left_x = 24;
-    let left_y = 24;
-    let left_w = 260;
-    let left_h = h - 48;
-    let right_x = left_x + left_w + 12;
-    let right_y = left_y;
-    let right_w = w - right_x - 24;
-    let top_h = 126;
-    let bottom_y = right_y + top_h + 12;
-    let bottom_h = left_h - top_h - 12;
+    let header_x = 24;
+    let header_y = 24;
+    let header_w = w - 48;
+    let header_h = 44;
+    let hero_x = 24;
+    let hero_y = 78;
+    let hero_w = w - 48;
+    let hero_h = 116;
+    let pass_x = 24;
+    let pass_y = 202;
+    let pass_w = 292;
+    let pass_h = 94;
+    let side_x = 324;
+    let side_y = 202;
+    let side_w = w - side_x - 24;
+    let side_h = 94;
 
-    draw_round_rect_filled(fb, left_x, left_y, left_w, left_h, 18, rgb565(28, 28, 34));
-    draw_round_rect_filled(fb, right_x, right_y, right_w, top_h, 18, rgb565(28, 28, 34));
-    draw_round_rect_filled(fb, right_x, bottom_y, right_w, bottom_h, 18, rgb565(28, 28, 34));
+    draw_round_rect_filled(fb, header_x, header_y, header_w, header_h, 16, rgb565(28, 28, 34));
+    draw_round_rect_filled(fb, hero_x, hero_y, hero_w, hero_h, 18, rgb565(28, 28, 34));
+    draw_round_rect_filled(fb, pass_x, pass_y, pass_w, pass_h, 18, rgb565(28, 28, 34));
+    draw_round_rect_filled(fb, side_x, side_y, side_w, side_h, 18, rgb565(28, 28, 34));
 
-    fill_rect_i32(fb, 28, 28, w - 56, 1, rgb565(80, 80, 92));
+    draw_text_5x7(fb, 38, 38, "NINO LCD", rgb565(200, 200, 208), 2, 1);
+    draw_chip(fb, w - 118, 34, 72, 22, rgb565(0, 113, 227), "LIVE", Rgb565::WHITE);
 
-    draw_text_5x7(fb, 36, 38, "NINO LCD", rgb565(172, 172, 182), 2, 1);
-    draw_text_5x7(fb, 36, 58, "APPLE STYLE", rgb565(172, 172, 182), 2, 1);
-    draw_text_5x7(fb, 36, 88, "TIME NOW", Rgb565::WHITE, 3, 2);
-
+    draw_text_5x7(fb, 38, 90, "TIME", rgb565(150, 150, 160), 2, 1);
     let (hh, mm) = current_hhmm_local();
-    draw_big_digits(fb, 38, 126, &format!("{}:{}", hh, mm), rgb565(245, 245, 247), 7, 6, 12);
+    draw_big_digits(fb, 34, 112, &format!("{}:{}", hh, mm), rgb565(245, 245, 247), 9, 8, 14);
+    draw_text_5x7(fb, 40, 172, &time_period_label(), rgb565(120, 194, 255), 2, 1);
+    draw_text_5x7(fb, 196, 172, &day_progress_label(), rgb565(186, 186, 196), 2, 1);
 
-    draw_text_5x7(fb, 40, 222, &time_period_label(), rgb565(120, 194, 255), 2, 1);
-    draw_text_5x7(fb, 40, 244, &day_progress_label(), rgb565(186, 186, 196), 2, 1);
-    draw_chip(fb, 38, 268, 86, 24, rgb565(0, 113, 227), "LIVE", Rgb565::WHITE);
-    draw_chip(fb, 132, 268, 142, 24, rgb565(38, 38, 46), "DELTA PASS", rgb565(220, 220, 228));
-
-    draw_text_5x7(fb, (right_x + 14) as u16, (right_y + 16) as u16, "DELTA DAILY", Rgb565::WHITE, 2, 1);
-    draw_text_5x7(fb, (right_x + 14) as u16, (right_y + 34) as u16, "PASSWORDS", Rgb565::WHITE, 2, 1);
-    draw_text_5x7(fb, (right_x + 14) as u16, (right_y + 56) as u16, "ONLINE OR FALLBACK", rgb565(150, 150, 160), 1, 1);
+    draw_text_5x7(fb, 38, 214, "DELTA DAILY", Rgb565::WHITE, 2, 1);
+    draw_text_5x7(fb, 38, 232, "PASSWORD", rgb565(150, 150, 160), 1, 1);
 
     let passwords = load_passwords();
-    let mut row_y = right_y + 72;
-    for item in passwords.iter().take(2) {
-        draw_round_rect_filled(fb, right_x + 10, row_y, right_w - 20, 20, 8, rgb565(36, 37, 44));
-        draw_text_5x7(
-            fb,
-            (right_x + 18) as u16,
-            (row_y + 6) as u16,
-            &item.location,
-            rgb565(214, 214, 220),
-            2,
-            1,
-        );
-        draw_small_code_box(fb, right_x + right_w - 72, row_y + 3, &item.password);
-        row_y += 24;
+    let shown: Vec<_> = passwords.into_iter().take(3).collect();
+    let mut row_y = 248;
+    for item in shown.iter() {
+        draw_password_row_480(fb, 36, row_y, 268, &item.location, &item.password);
+        row_y += 16;
     }
 
-    draw_text_5x7(fb, (right_x + 14) as u16, (bottom_y + 16) as u16, "FUN BLOCKS", Rgb565::WHITE, 2, 1);
-    draw_text_5x7(fb, (right_x + 14) as u16, (bottom_y + 34) as u16, "QUIET BUT USEFUL", rgb565(150, 150, 160), 1, 1);
+    draw_text_5x7(fb, 338, 214, "INFO", Rgb565::WHITE, 2, 1);
+    draw_text_5x7(fb, 338, 232, "AMBIENT", rgb565(150, 150, 160), 1, 1);
 
-    let mini_gap = 8;
-    let mini_w = (right_w - 10 - 10 - mini_gap) / 2;
-    let mini_h = 52;
-    let mini1_x = right_x + 10;
-    let mini2_x = mini1_x + mini_w + mini_gap;
-    let mini1_y = bottom_y + 52;
-    let mini2_y = mini1_y + mini_h + mini_gap;
-
-    draw_mini_card(fb, mini1_x, mini1_y, mini_w, mini_h, "DAY", &day_progress_pct());
-    draw_mini_card(fb, mini2_x, mini1_y, mini_w, mini_h, "WEEK", &weekday_short());
-    draw_mini_card(fb, mini1_x, mini2_y, mini_w, mini_h, "LUCKY", &lucky_number());
-    draw_mini_card(fb, mini2_x, mini2_y, mini_w, mini_h, "MODE", &mode_label());
+    draw_stat_block(fb, 336, 246, side_w - 24, 14, "DAY", &day_progress_pct(), rgb565(0, 113, 227));
+    draw_stat_block(fb, 336, 263, side_w - 24, 14, "WEEK", &weekday_short(), rgb565(60, 60, 70));
+    draw_stat_block(fb, 336, 280, side_w - 24, 14, "MODE", &mode_label(), rgb565(60, 60, 70));
 }
 
 fn draw_chip(fb: &mut FrameBuffer, x: i32, y: i32, w: i32, h: i32, bg: Rgb565, text: &str, fg: Rgb565) {
     draw_round_rect_filled(fb, x, y, w, h, h / 2, bg);
-    draw_text_5x7(fb, (x + 12) as u16, (y + 8) as u16, text, fg, 1, 1);
+    draw_text_5x7(fb, (x + 12) as u16, (y + 7) as u16, text, fg, 1, 1);
 }
 
-fn draw_mini_card(fb: &mut FrameBuffer, x: i32, y: i32, w: i32, h: i32, title: &str, value: &str) {
-    draw_round_rect_filled(fb, x, y, w, h, 10, rgb565(36, 37, 44));
-    draw_text_5x7(fb, (x + 10) as u16, (y + 9) as u16, title, rgb565(150, 150, 160), 1, 1);
-    draw_text_5x7(fb, (x + 10) as u16, (y + 26) as u16, value, Rgb565::WHITE, 2, 1);
+fn draw_password_row_480(
+    fb: &mut FrameBuffer,
+    x: i32,
+    y: i32,
+    w: i32,
+    location: &str,
+    password: &str,
+) {
+    draw_round_rect_filled(fb, x, y, w, 14, 6, rgb565(36, 37, 44));
+    draw_text_5x7(fb, (x + 8) as u16, (y + 4) as u16, location, rgb565(224, 224, 230), 1, 1);
+    let code_w = 50;
+    draw_round_rect_filled(fb, x + w - code_w - 4, y + 1, code_w, 12, 5, rgb565(0, 113, 227));
+    draw_text_5x7(fb, (x + w - code_w + 8) as u16, (y + 4) as u16, password, Rgb565::WHITE, 1, 1);
 }
 
-fn draw_small_code_box(fb: &mut FrameBuffer, x: i32, y: i32, code: &str) {
-    draw_round_rect_filled(fb, x, y, 54, 14, 6, rgb565(0, 113, 227));
-    draw_text_5x7(fb, (x + 8) as u16, (y + 4) as u16, code, Rgb565::WHITE, 1, 1);
+fn draw_stat_block(fb: &mut FrameBuffer, x: i32, y: i32, w: i32, h: i32, label: &str, value: &str, accent: Rgb565) {
+    draw_round_rect_filled(fb, x, y, w, h, 6, rgb565(36, 37, 44));
+    draw_round_rect_filled(fb, x + 4, y + 4, 6, h - 8, 3, accent);
+    draw_text_5x7(fb, (x + 16) as u16, (y + 4) as u16, label, rgb565(150, 150, 160), 1, 1);
+    let value_x = x + w - (value.len() as i32 * 11) - 8;
+    draw_text_5x7(fb, value_x.max(x + 52) as u16, (y + 4) as u16, value, Rgb565::WHITE, 1, 1);
 }
 
 fn draw_big_digits(
