@@ -140,7 +140,14 @@ pub fn status_page_demo(fb: &mut FrameBuffer) {
 pub fn apple_delta_dashboard_demo(fb: &mut FrameBuffer) {
     let w = fb.width() as i32;
     let h = fb.height() as i32;
+    if h > w {
+        apple_delta_dashboard_portrait(fb, w, h);
+    } else {
+        apple_delta_dashboard_landscape(fb, w, h);
+    }
+}
 
+fn apple_delta_dashboard_landscape(fb: &mut FrameBuffer, w: i32, h: i32) {
     draw_vertical_gradient(fb, 0, 0, w, h, rgb565(7, 7, 10), rgb565(0, 0, 0));
     draw_round_rect_filled(fb, 8, 8, w - 16, h - 16, 20, rgb565(10, 10, 14));
 
@@ -148,23 +155,18 @@ pub fn apple_delta_dashboard_demo(fb: &mut FrameBuffer) {
     let gap = 10;
     let top_h = 44;
     let mid_h = 116;
-    let bottom_h = 108;
-
     let top_y = margin;
     let mid_y = top_y + top_h + gap;
     let bottom_y = mid_y + mid_h + gap;
-
     let left_w = 222;
     let right_w = w - margin * 2 - gap - left_w;
 
     draw_watch_card(fb, margin, top_y, 138, top_h, rgb565(22, 22, 28));
     draw_watch_card(fb, margin + 138 + gap, top_y, 106, top_h, rgb565(22, 22, 28));
     draw_watch_card(fb, margin + 138 + gap + 106 + gap, top_y, w - margin - (margin + 138 + gap + 106 + gap), top_h, rgb565(0, 113, 227));
-
     draw_watch_card(fb, margin, mid_y, left_w, mid_h, rgb565(22, 22, 28));
     draw_watch_card(fb, margin + left_w + gap, mid_y, right_w, mid_h, rgb565(22, 22, 28));
-
-    draw_watch_card(fb, margin, bottom_y, left_w, bottom_h, rgb565(22, 22, 28));
+    draw_watch_card(fb, margin, bottom_y, left_w, 108, rgb565(22, 22, 28));
     draw_watch_card(fb, margin + left_w + gap, bottom_y, right_w, 49, rgb565(22, 22, 28));
     draw_watch_card(fb, margin + left_w + gap, bottom_y + 59, right_w, 49, rgb565(22, 22, 28));
 
@@ -172,15 +174,15 @@ pub fn apple_delta_dashboard_demo(fb: &mut FrameBuffer) {
     draw_text_5x7(fb, 172, 33, &day_progress_pct(), rgb565(228, 228, 232), 2, 1);
     draw_text_5x7(fb, 300, 33, "LIVE", Rgb565::WHITE, 2, 1);
 
-    draw_text_5x7(fb, 36, 88, "TIME", rgb565(130, 130, 140), 2, 1);
     let (hh, mm) = current_hhmm_local();
+    draw_text_5x7(fb, 36, 88, "TIME", rgb565(130, 130, 140), 2, 1);
     draw_big_digits(fb, 32, 108, &format!("{}:{}", hh, mm), rgb565(248, 248, 250), 8, 6, 12);
     draw_text_5x7(fb, 38, 170, &time_period_label(), rgb565(120, 194, 255), 2, 1);
 
     draw_text_5x7(fb, 266, 88, "MODE", rgb565(130, 130, 140), 2, 1);
     draw_text_5x7(fb, 266, 116, &mode_label(), Rgb565::WHITE, 3, 1);
     draw_text_5x7(fb, 266, 148, &weekday_short(), rgb565(170, 170, 178), 2, 1);
-    draw_text_5x7(fb, 266, 172, "APPLE WATCH", rgb565(0, 113, 227), 1, 1);
+    draw_text_5x7(fb, 266, 172, "LANDSCAPE", rgb565(0, 113, 227), 1, 1);
 
     draw_text_5x7(fb, 36, 222, "DELTA", rgb565(130, 130, 140), 2, 1);
     draw_text_5x7(fb, 36, 242, "PASSWORDS", Rgb565::WHITE, 2, 1);
@@ -196,6 +198,59 @@ pub fn apple_delta_dashboard_demo(fb: &mut FrameBuffer) {
     draw_text_5x7(fb, 266, 235, &day_progress_label(), Rgb565::WHITE, 2, 1);
     draw_text_5x7(fb, 266, 279, "WEEK", rgb565(130, 130, 140), 1, 1);
     draw_text_5x7(fb, 266, 294, &weekday_short(), Rgb565::WHITE, 2, 1);
+}
+
+fn apple_delta_dashboard_portrait(fb: &mut FrameBuffer, w: i32, h: i32) {
+    draw_vertical_gradient(fb, 0, 0, w, h, rgb565(7, 7, 10), rgb565(0, 0, 0));
+    draw_round_rect_filled(fb, 8, 8, w - 16, h - 16, 22, rgb565(10, 10, 14));
+
+    let margin = 18;
+    let gap = 10;
+    let top_y = margin;
+
+    draw_watch_card(fb, margin, top_y, 88, 40, rgb565(22, 22, 28));
+    draw_watch_card(fb, margin + 98, top_y, 88, 40, rgb565(22, 22, 28));
+    draw_watch_card(fb, margin + 196, top_y, w - (margin + 196) - margin, 40, rgb565(0, 113, 227));
+
+    let time_y = top_y + 50;
+    draw_watch_card(fb, margin, time_y, w - margin * 2, 118, rgb565(22, 22, 28));
+
+    let mid_y = time_y + 128;
+    draw_watch_card(fb, margin, mid_y, w - margin * 2, 72, rgb565(22, 22, 28));
+
+    let list_y = mid_y + 82;
+    draw_watch_card(fb, margin, list_y, w - margin * 2, 138, rgb565(22, 22, 28));
+
+    let stat_y = list_y + 148;
+    draw_watch_card(fb, margin, stat_y, w - margin * 2, 42, rgb565(22, 22, 28));
+    draw_watch_card(fb, margin, stat_y + 52, w - margin * 2, 42, rgb565(22, 22, 28));
+
+    draw_text_5x7(fb, 28, 30, "MON", rgb565(228, 228, 232), 2, 1);
+    draw_text_5x7(fb, 128, 30, &day_progress_pct(), rgb565(228, 228, 232), 2, 1);
+    draw_text_5x7(fb, 238, 30, "LIVE", Rgb565::WHITE, 2, 1);
+
+    let (hh, mm) = current_hhmm_local();
+    draw_text_5x7(fb, 34, 86, "TIME", rgb565(130, 130, 140), 2, 1);
+    draw_big_digits(fb, 28, 108, &format!("{}:{}", hh, mm), rgb565(248, 248, 250), 7, 5, 10);
+    draw_text_5x7(fb, 34, 170, &time_period_label(), rgb565(120, 194, 255), 2, 1);
+
+    draw_text_5x7(fb, 34, 222, "MODE", rgb565(130, 130, 140), 1, 1);
+    draw_text_5x7(fb, 34, 238, &mode_label(), Rgb565::WHITE, 2, 1);
+    draw_text_5x7(fb, 170, 238, "PORTRAIT", rgb565(0, 113, 227), 1, 1);
+
+    draw_text_5x7(fb, 34, 304, "DELTA PASSWORDS", Rgb565::WHITE, 2, 1);
+    let passwords = load_passwords();
+    let shown: Vec<_> = passwords.into_iter().take(4).collect();
+    let mut row_y = 330;
+    for item in shown.iter() {
+        draw_password_row_480(fb, 30, row_y, w - 60, &item.location, &item.password);
+        row_y += 22;
+    }
+
+    draw_text_5x7(fb, 34, stat_y + 14, "DAY", rgb565(130, 130, 140), 1, 1);
+    draw_text_5x7(fb, 110, stat_y + 12, &day_progress_label(), Rgb565::WHITE, 2, 1);
+    draw_text_5x7(fb, 34, stat_y + 66, "WEEK", rgb565(130, 130, 140), 1, 1);
+    draw_text_5x7(fb, 110, stat_y + 64, &weekday_short(), Rgb565::WHITE, 2, 1);
 }
 
 fn draw_watch_card(fb: &mut FrameBuffer, x: i32, y: i32, w: i32, h: i32, bg: Rgb565) {
