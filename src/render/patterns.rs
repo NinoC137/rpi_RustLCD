@@ -236,7 +236,7 @@ fn apple_delta_dashboard_portrait(fb: &mut FrameBuffer, w: i32, h: i32) {
     draw_watch_card(fb, outer_x, list_y, outer_w, list_h, rgb565(24, 24, 30));
 
     draw_center_text_5x7(fb, card1_x, top_y + 12, col_w, "MON", rgb565(245, 245, 247), 2, 1);
-    draw_center_text_5x7(fb, card2_x, top_y + 12, col_w, &day_progress_pct(), rgb565(245, 245, 247), 2, 1);
+    draw_center_text_5x7(fb, card2_x, top_y + 12, col_w, &month_day_label(), rgb565(245, 245, 247), 2, 1);
     draw_center_text_5x7(fb, card3_x, top_y + 12, col_w, "LIVE", Rgb565::WHITE, 2, 1);
 
     let (hh, mm) = current_hhmm_local();
@@ -481,6 +481,18 @@ fn weekday_short() -> String {
         7 => "SUN".to_string(),
         _ => "MON".to_string(),
     }
+}
+
+fn month_day_label() -> String {
+    use std::process::Command;
+    if let Ok(output) = Command::new("date").args(["+%m-%d"]).output() {
+        if output.status.success() {
+            if let Ok(s) = String::from_utf8(output.stdout) {
+                return s.trim().to_string();
+            }
+        }
+    }
+    "04-13".to_string()
 }
 
 fn truncate_label(s: &str, max_len: usize) -> String {

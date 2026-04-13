@@ -1,4 +1,7 @@
 use std::process::Command;
+use std::sync::{Arc, Mutex, OnceLock};
+use std::thread;
+use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub struct DeltaPassword {
@@ -14,11 +17,42 @@ const FALLBACK_PASSWORDS: [(&str, &str); 5] = [
     ("PRISON", "8777"),
 ];
 
-const FETCH_RETRIES: usize = 3;
 const FETCH_TIMEOUT_SECONDS: &str = "0.1";
+const REFRESH_INTERVAL_SECS: u64 = 600;
+
+#[derive(Debug, Clone)]
+struct PasswordCache {
+    items: Vec<DeltaPassword>,
+}
+
+static PASSWORD_CACHE: OnceLock<Arc<Mutex<PasswordCache>>> = OnceLock::new();
+static PASSWORD_WORKER: OnceLock<()> = OnceLock::new();
 
 pub fn load_passwords() -> Vec<DeltaPassword> {
-    fetch_passwords_with_retry().unwrap_or_else(fallback_passwords)
+    let cache = PASSWORD_CACHE
+        .get_or_init(|| {
+            Arc::new(Mutex::new(PasswordCache {
+                items: fallback_passwords(),
+            }))
+        })
+        .clone();
+
+    PASSWORD_WORKER.get_or_init(|| {
+        let cache = cache.clone();
+        thread::spawn(move || loop {
+            if let Some(items) = fetch_passwords_from_curl_once() {
+                if let Ok(mut guard) = cache.lock() {
+                    guard.items = items;
+                }
+            }
+            thread::sleep(Duration::from_secs(REFRESH_INTERVAL_SECS));
+        });
+    });
+
+    cache
+        .lock()
+        .map(|guard| guard.items.clone())
+        .unwrap_or_else(|_| fallback_passwords())
 }
 
 fn fallback_passwords() -> Vec<DeltaPassword> {
@@ -29,15 +63,6 @@ fn fallback_passwords() -> Vec<DeltaPassword> {
             password: (*password).to_string(),
         })
         .collect()
-}
-
-fn fetch_passwords_with_retry() -> Option<Vec<DeltaPassword>> {
-    for _ in 0..FETCH_RETRIES {
-        if let Some(items) = fetch_passwords_from_curl_once() {
-            return Some(items);
-        }
-    }
-    None
 }
 
 fn fetch_passwords_from_curl_once() -> Option<Vec<DeltaPassword>> {
