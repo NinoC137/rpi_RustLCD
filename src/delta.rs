@@ -19,6 +19,7 @@ const FALLBACK_PASSWORDS: [(&str, &str); 5] = [
 
 const FETCH_TIMEOUT_SECONDS: &str = "0.1";
 const REFRESH_INTERVAL_SECS: u64 = 600;
+const API_URL: &str = "https://i.elaina.vin/api/%E4%B8%89%E8%A7%92%E6%B4%B2/%E5%AF%86%E7%A0%81/";
 
 #[derive(Debug, Clone)]
 struct PasswordCache {
@@ -66,24 +67,53 @@ fn fallback_passwords() -> Vec<DeltaPassword> {
 }
 
 fn fetch_passwords_from_curl_once() -> Option<Vec<DeltaPassword>> {
-    let output = Command::new("curl")
+    let curl_output = Command::new("curl")
         .args([
             "-fsSL",
             "--connect-timeout",
             FETCH_TIMEOUT_SECONDS,
             "--max-time",
             FETCH_TIMEOUT_SECONDS,
-            "https://api.icofun.cn/api/delta_mima.php",
+            API_URL,
         ])
         .output()
         .ok()?;
 
-    if !output.status.success() {
+    if !curl_output.status.success() {
         return None;
     }
 
-    let body = String::from_utf8(output.stdout).ok()?;
-    let parsed = parse_passwords(&body);
+    let body = String::from_utf8(curl_output.stdout).ok()?;
+    let parser = r#"import sys, json
+obj = json.load(sys.stdin)
+items = obj.get('data', [])
+for item in items[:5]:
+    name = str(item.get('name', '')).strip()
+    password = str(item.get('password', '')).strip()
+    if name and password:
+        print(f"{name}\t{password}")
+"#;
+
+    let parse_output = Command::new("python3")
+        .args(["-c", parser])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .ok()
+        .and_then(|mut child| {
+            use std::io::Write;
+            if let Some(stdin) = child.stdin.as_mut() {
+                let _ = stdin.write_all(body.as_bytes());
+            }
+            child.wait_with_output().ok()
+        })?;
+
+    if !parse_output.status.success() {
+        return None;
+    }
+
+    let text = String::from_utf8(parse_output.stdout).ok()?;
+    let parsed = parse_password_lines(&text);
     if parsed.is_empty() {
         None
     } else {
@@ -91,41 +121,22 @@ fn fetch_passwords_from_curl_once() -> Option<Vec<DeltaPassword>> {
     }
 }
 
-fn parse_passwords(body: &str) -> Vec<DeltaPassword> {
-    let mut locations = Vec::new();
-    let mut passwords = Vec::new();
-
-    for line in body.lines() {
-        let trimmed = line.trim();
-        if let Some(rest) = trimmed.strip_prefix("地点:") {
-            locations.push(normalize_location(rest.trim()));
-        } else if let Some(rest) = trimmed.strip_prefix("密码:") {
-            let digits: String = rest.chars().filter(|c| c.is_ascii_digit()).collect();
-            if !digits.is_empty() {
-                passwords.push(digits);
+fn parse_password_lines(body: &str) -> Vec<DeltaPassword> {
+    body.lines()
+        .filter_map(|line| {
+            let mut parts = line.split('\t');
+            let name = parts.next()?.trim();
+            let password = parts.next()?.trim();
+            if name.is_empty() || password.is_empty() {
+                return None;
             }
-        }
-    }
-
-    let count = locations.len().min(passwords.len()).min(5);
-    (0..count)
-        .map(|i| DeltaPassword {
-            location: locations[i].clone(),
-            password: passwords[i].clone(),
+            Some(DeltaPassword {
+                location: translit_location(name),
+                password: password.to_string(),
+            })
         })
+        .take(5)
         .collect()
-}
-
-fn normalize_location(raw: &str) -> String {
-    if let Some(start) = raw.find('【') {
-        if let Some(end_rel) = raw[start + '【'.len_utf8()..].find('】') {
-            let inner_start = start + '【'.len_utf8();
-            let inner_end = inner_start + end_rel;
-            let inner = &raw[inner_start..inner_end];
-            return translit_location(inner);
-        }
-    }
-    translit_location(raw)
 }
 
 fn translit_location(s: &str) -> String {
