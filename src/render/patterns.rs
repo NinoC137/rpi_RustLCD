@@ -247,10 +247,10 @@ fn apple_delta_dashboard_portrait(fb: &mut FrameBuffer, w: i32, h: i32) {
         row_y += 22;
     }
 
-    draw_text_5x7(fb, 34, stat_y + 14, "DAY", rgb565(130, 130, 140), 1, 1);
-    draw_text_5x7(fb, 110, stat_y + 12, &day_progress_label(), Rgb565::WHITE, 2, 1);
-    draw_text_5x7(fb, 34, stat_y + 66, "WEEK", rgb565(130, 130, 140), 1, 1);
-    draw_text_5x7(fb, 110, stat_y + 64, &weekday_short(), Rgb565::WHITE, 2, 1);
+    draw_text_5x7(fb, 34, (stat_y + 14) as u16, "DAY", rgb565(130, 130, 140), 1, 1);
+    draw_text_5x7(fb, 110, (stat_y + 12) as u16, &day_progress_label(), Rgb565::WHITE, 2, 1);
+    draw_text_5x7(fb, 34, (stat_y + 66) as u16, "WEEK", rgb565(130, 130, 140), 1, 1);
+    draw_text_5x7(fb, 110, (stat_y + 64) as u16, &weekday_short(), Rgb565::WHITE, 2, 1);
 }
 
 fn draw_watch_card(fb: &mut FrameBuffer, x: i32, y: i32, w: i32, h: i32, bg: Rgb565) {
